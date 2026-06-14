@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — CatchyPinang</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="admin-style.css">
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+  import {
+    getDatabase, ref, push, set, remove, update, onValue, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAipQK31IWfMb88ezSBENCaFQwXt-dm8TU",
+    authDomain:        "pariwisata-daf3d.firebaseapp.com",
+    databaseURL:       "https://pariwisata-daf3d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "pariwisata-daf3d",
+    storageBucket:     "pariwisata-daf3d.firebasestorage.app",
+    messagingSenderId: "823831095499",
+    appId:             "1:823831095499:web:ff2e5f7cb821f02fc4534e"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  window._fbDb        = db;
+  window._fbRef       = ref;
+  window._fbPush      = push;
+  window._fbSet       = set;
+  window._fbRemove    = remove;
+  window._fbUpdate    = update;
+  window._fbOnValue   = onValue;
+  window._fbTimestamp = serverTimestamp;
+  window._fbReady     = true;
+
+  document.dispatchEvent(new Event("firebaseReady"));
+</script>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="load-logo">Catchy<span>Pinang</span></div>
+  <div class="load-sub">Admin Panel</div>
+  <div class="load-bar"><div class="load-bar-fill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-ov" id="confirmOv">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h3 id="confirmTitle">Hapus Destinasi?</h3>
+    <p id="confirmMsg">Tindakan ini tidak dapat dibatalkan. Data akan terhapus permanen dari database.</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel-c" onclick="closeConfirm()">Batal</button>
+      <button class="btn-delete-c" id="btnConfirmDel">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGOUT CONFIRM DIALOG -->
+<div class="confirm-ov" id="logoutConfirmOv">
+  <div class="confirm-box">
+    <div class="confirm-icon">👋</div>
+    <h3>Keluar dari Panel Admin?</h3>
+    <p>Sesi Anda akan diakhiri. Anda perlu login kembali untuk mengakses panel admin.</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel-c" onclick="closeLogoutConfirm()">Batal</button>
+      <button class="btn-delete-c" style="background:var(--primary)" onclick="confirmLogout()">Ya, Keluar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIF PANEL -->
+<div id="notifPanel" class="notif-panel">
+  <div class="notif-panel-head">
+    <span>Notifikasi</span>
+    <button onclick="markAllRead()" class="notif-mark-all">Tandai semua dibaca</button>
+  </div>
+  <div id="notifList" class="notif-list"></div>
+  <div id="notifEmpty" class="notif-empty" style="display:none">Tidak ada notifikasi baru</div>
+</div>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="login-logo">Catchy<span>Pinang</span></div>
+    <div class="login-title">Admin Panel</div>
+    <p class="login-sub">Masuk untuk mengelola konten wisata</p>
+    <div class="fg">
+      <label>Username</label>
+      <input type="text" class="fi" id="adminUser" placeholder="admin" autocomplete="username">
+      <div class="err" id="errUser">Username wajib diisi</div>
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" class="fi" id="adminPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+        <button class="pw-toggle" onclick="togglePw()" id="pwToggle">👁️</button>
+      </div>
+      <div class="err" id="errPass">Password wajib diisi</div>
+    </div>
+    <div class="err" id="errLogin" style="display:block;margin-top:.25rem"></div>
+    <button class="btn-login-full" onclick="doAdminLogin()">Masuk ke Panel Admin</button>
+    <div class="login-foot">CatchyPinang © 2025 · Teknik Informatika UMRAH</div>
+  </div>
+</div>
+
+<!-- MAIN ADMIN APP -->
+<div id="adminApp" class="admin-app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-logo-wrap">
+        <div class="sidebar-logo">Catchy<span>Pinang</span></div>
+        <div class="sidebar-badge">Admin</div>
+      </div>
+      <button class="sidebar-close-btn" id="sidebarCloseBtn" onclick="closeSidebar()" title="Tutup sidebar">☰</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="snav-item active" onclick="switchView('dashboard')" id="snav-dashboard">
+        <span class="snav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a class="snav-item" onclick="switchView('wisata')" id="snav-wisata">
+        <span class="snav-icon">🗺️</span>
+        <span>Destinasi Wisata</span>
+        <span class="snav-badge" id="badgeWisata">0</span>
+        <span class="snav-cap" id="capWisata"></span>
+      </a>
+      <a class="snav-item" onclick="switchView('reviews')" id="snav-reviews">
+        <span class="snav-icon">⭐</span>
+        <span>Ulasan</span>
+        <span class="snav-badge" id="badgeReviews">0</span>
+        <span class="snav-cap" id="capReviews"></span>
+      </a>
+      <a class="snav-item" onclick="switchView('contacts')" id="snav-contacts">
+        <span class="snav-icon">📬</span>
+        <span>Pesan Kontak</span>
+        <span class="snav-badge" id="badgeContacts">0</span>
+        <span class="snav-cap" id="capContacts"></span>
+      </a>
+    </nav>
+
+    <div class="sidebar-backup-info" id="sidebarBackupInfo">
+      <div class="backup-dot"></div>
+      <span id="backupInfoText">Backup berikutnya: —</span>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="sf-user">
+        <div class="sf-av">A</div>
+        <div>
+          <div class="sf-name">Administrator</div>
+          <div class="sf-role">Super Admin</div>
+        </div>
+      </div>
+      <div class="gear-wrap" id="gearWrap">
+        <button class="btn-gear" onclick="toggleGearMenu(event)" title="Pengaturan">⚙️</button>
+        <div class="gear-menu" id="gearMenu">
+          <button class="gear-item" onclick="openBackupPanel()">🗄️ Backup Sekarang</button>
+          <button class="gear-item" onclick="openDbInfo()">🔌 Status Database</button>
+          <div class="gear-divider"></div>
+          <button class="gear-item gear-logout" onclick="askLogout()">🚪 Keluar</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOPBAR -->
+  <div class="topbar" id="topbar">
+    <button class="topbar-ham" onclick="toggleSidebar()" id="topbarHam">☰</button>
+    <div class="topbar-logo">Catchy<span>Pinang</span></div>
+    <div class="topbar-actions">
+      <button class="topbar-notif" id="topbarNotifBtn" onclick="toggleNotifPanel(event)">
+        🔔
+        <span class="notif-dot" id="notifDot" style="display:none"></span>
+      </button>
+      <button class="btn-gear" style="font-size:1.2rem" onclick="askLogout()" title="Keluar">🚪</button>
+    </div>
+  </div>
+  <div class="sidebar-overlay" id="sidebarOv" onclick="closeSidebar()"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- DASHBOARD VIEW -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub">Ringkasan data CatchyPinang</p>
+        </div>
+        <div class="header-right">
+          <div class="header-date" id="headerDate"></div>
+          <div class="notif-wrap" id="desktopNotifWrap">
+            <button class="notif-bell-btn" id="desktopNotifBtn" onclick="toggleNotifPanel(event)" title="Notifikasi">
+              🔔
+              <span class="notif-dot" id="notifDotDesktop" style="display:none"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card-admin">
+          <div class="stat-icon-bg sc-primary">🗺️</div>
+          <div class="stat-info">
+            <div class="stat-num-admin" id="statWisata">—</div>
+            <div class="stat-lbl-admin">Total Destinasi</div>
+            <div class="stat-cap" id="statCapWisata"></div>
+          </div>
+        </div>
+        <div class="stat-card-admin">
+          <div class="stat-icon-bg sc-green">⭐</div>
+          <div class="stat-info">
+            <div class="stat-num-admin" id="statReviews">—</div>
+            <div class="stat-lbl-admin">Total Ulasan</div>
+            <div class="stat-cap" id="statCapReviews"></div>
+          </div>
+        </div>
+        <div class="stat-card-admin">
+          <div class="stat-icon-bg sc-orange">📬</div>
+          <div class="stat-info">
+            <div class="stat-num-admin" id="statContacts">—</div>
+            <div class="stat-lbl-admin">Pesan Masuk</div>
+            <div class="stat-cap" id="statCapContacts"></div>
+          </div>
+        </div>
+        <div class="stat-card-admin">
+          <div class="stat-icon-bg sc-purple">📂</div>
+          <div class="stat-info">
+            <div class="stat-num-admin" id="statKategori">5</div>
+            <div class="stat-lbl-admin">Kategori Wisata</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <h3>Destinasi Wisata Terbaru</h3>
+            <button class="btn-view-all" onclick="switchView('wisata')">Lihat Semua →</button>
+          </div>
+          <div id="recentWisata" class="recent-list"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <h3>Ulasan Terbaru</h3>
+            <button class="btn-view-all" onclick="switchView('reviews')">Lihat Semua →</button>
+          </div>
+          <div id="recentReviews" class="recent-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WISATA VIEW -->
+    <div class="view" id="view-wisata">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Destinasi Wisata</h1>
+          <p class="page-sub">Kelola semua destinasi wisata</p>
+        </div>
+        <button class="btn-primary-admin" onclick="openFormModal()">+ Tambah Destinasi</button>
+      </div>
+      <div class="table-controls">
+        <div class="search-admin">
+          <span>🔍</span>
+          <input type="text" placeholder="Cari destinasi..." id="wisataSearch" oninput="filterWisataTable()">
+        </div>
+        <select class="select-admin" id="wisataFilterKat" onchange="filterWisataTable()">
+          <option value="">Semua Kategori</option>
+          <option>Sejarah &amp; Budaya</option>
+          <option>Religi &amp; Spiritual</option>
+          <option>Alam &amp; Pantai</option>
+          <option>Rekreasi Keluarga</option>
+          <option>Kuliner</option>
+        </select>
+      </div>
+      <div class="capacity-card" id="capBarWisata"></div>
+      <div class="table-wrap">
+        <table class="admin-table" id="wisataTable">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Nama &amp; Kategori</th>
+              <th>Lokasi</th>
+              <th>Harga</th>
+              <th>Jam</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="wisataTableBody">
+            <tr><td colspan="6" class="table-loading">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-empty" id="wisataEmpty" style="display:none">
+        <div>🗺️</div>
+        <p>Belum ada destinasi wisata</p>
+        <button class="btn-primary-admin" onclick="openFormModal()">+ Tambah Destinasi</button>
+      </div>
+    </div>
+
+    <!-- REVIEWS VIEW -->
+    <div class="view" id="view-reviews">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Ulasan Pengunjung</h1>
+          <p class="page-sub">Pantau dan kelola ulasan</p>
+        </div>
+      </div>
+      <div class="table-controls">
+        <div class="search-admin">
+          <span>🔍</span>
+          <input type="text" placeholder="Cari ulasan..." id="reviewSearch" oninput="filterReviewTable()">
+        </div>
+        <select class="select-admin" id="reviewFilterWisata" onchange="filterReviewTable()">
+          <option value="">Semua Destinasi</option>
+        </select>
+      </div>
+      <div class="capacity-card" id="capBarReviews"></div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Pengunjung</th>
+              <th>Destinasi</th>
+              <th>Rating</th>
+              <th>Ulasan</th>
+              <th>Tanggal</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="reviewTableBody">
+            <tr><td colspan="6" class="table-loading">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-empty" id="reviewEmpty" style="display:none">
+        <div>⭐</div>
+        <p>Belum ada ulasan masuk</p>
+      </div>
+    </div>
+
+    <!-- CONTACTS VIEW -->
+    <div class="view" id="view-contacts">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Pesan Kontak</h1>
+          <p class="page-sub">Pesan dari pengunjung website</p>
+        </div>
+      </div>
+      <div class="table-controls">
+        <div class="search-admin">
+          <span>🔍</span>
+          <input type="text" placeholder="Cari pesan..." id="contactSearch" oninput="filterContactTable()">
+        </div>
+        <select class="select-admin" id="contactFilterTopik" onchange="filterContactTable()">
+          <option value="">Semua Topik</option>
+          <option>Informasi Wisata</option>
+          <option>Masalah Teknis Website</option>
+          <option>Saran &amp; Masukan</option>
+          <option>Lainnya</option>
+          <option>Tidak dipilih</option>
+        </select>
+      </div>
+      <div class="capacity-card" id="capBarContacts"></div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Pengirim</th>
+              <th>Topik</th>
+              <th>Pesan</th>
+              <th>Tanggal</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="contactTableBody">
+            <tr><td colspan="5" class="table-loading">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-empty" id="contactEmpty" style="display:none">
+        <div>📬</div>
+        <p>Belum ada pesan masuk</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL FORM WISATA -->
+<div class="modal-ov" id="formModal">
+  <div class="modal-admin">
+    <div class="modal-admin-head">
+      <h2 id="formModalTitle">Tambah Destinasi Wisata</h2>
+      <button class="modal-close" onclick="closeFormModal()">✕</button>
+    </div>
+    <div class="modal-admin-body">
+      <div class="form-grid-2">
+        <div class="fg">
+          <label>Nama Destinasi <span class="req">*</span></label>
+          <input type="text" class="fi" id="fNama" placeholder="cth. Pulau Penyengat">
+          <div class="err" id="efNama">Nama wajib diisi</div>
+        </div>
+        <div class="fg">
+          <label>Kategori <span class="req">*</span></label>
+          <select class="fs" id="fKat">
+            <option value="">-- Pilih Kategori --</option>
+            <option>Sejarah &amp; Budaya</option>
+            <option>Religi &amp; Spiritual</option>
+            <option>Alam &amp; Pantai</option>
+            <option>Rekreasi Keluarga</option>
+            <option>Kuliner</option>
+          </select>
+          <div class="err" id="efKat">Kategori wajib dipilih</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Deskripsi <span class="req">*</span></label>
+        <textarea class="ft" id="fDesk" placeholder="Deskripsi lengkap destinasi wisata..." rows="4"></textarea>
+        <div class="err" id="efDesk">Deskripsi wajib diisi</div>
+      </div>
+      <div class="form-grid-2">
+        <div class="fg">
+          <label>Lokasi <span class="req">*</span></label>
+          <input type="text" class="fi" id="fLok" placeholder="cth. Pulau Penyengat, Tanjungpinang">
+          <div class="err" id="efLok">Lokasi wajib diisi</div>
+        </div>
+        <div class="fg">
+          <label>Kontak</label>
+          <input type="text" class="fi" id="fKontak" placeholder="cth. +62 771-123456">
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="fg">
+          <label>Jam Operasional</label>
+          <input type="text" class="fi" id="fJam" placeholder="cth. Setiap hari, 07.00 – 18.00 WIB">
+        </div>
+        <div class="fg">
+          <label>Harga Tiket</label>
+          <input type="text" class="fi" id="fHarga" placeholder="cth. Rp 5.000 atau Gratis">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Emoji Ikon</label>
+        <input type="text" class="fi" id="fEm" placeholder="cth. 🏛️" maxlength="4">
+      </div>
+      <div class="fg">
+        <label>URL Foto (pisahkan dengan koma)</label>
+        <textarea class="ft" id="fFoto" placeholder="image/foto1.jpg, image/foto2.jpg, https://..." rows="3"></textarea>
+        <div class="fi-hint">Masukkan path relatif atau URL gambar, pisahkan dengan koma</div>
+      </div>
+      <div class="fg">
+        <label>Fasilitas (pisahkan dengan koma)</label>
+        <input type="text" class="fi" id="fFac" placeholder="cth. Parkir, Toilet, Warung Makan">
+        <div class="fi-hint">Pisahkan setiap fasilitas dengan tanda koma</div>
+      </div>
+      <div class="fg">
+        <label>URL Embed Google Maps</label>
+        <textarea class="ft" id="fMaps" placeholder="https://www.google.com/maps/embed?pb=..." rows="3"></textarea>
+        <div class="fi-hint">Salin URL embed dari Google Maps (Bagikan → Sematkan peta → URL src iframe)</div>
+      </div>
+    </div>
+    <div class="modal-admin-foot">
+      <button class="btn-cancel-modal" onclick="closeFormModal()">Batal</button>
+      <button class="btn-save-modal" id="btnSaveForm" onclick="saveWisata()">Simpan Destinasi</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PESAN MODAL -->
+<div class="modal-ov" id="detailModal">
+  <div class="modal-admin modal-sm">
+    <div class="modal-admin-head">
+      <h2 id="detailModalTitle">Detail Pesan</h2>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="modal-admin-body" id="detailModalBody"></div>
+    <div class="modal-admin-foot">
+      <button class="btn-cancel-modal" onclick="closeDetailModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP PANEL MODAL -->
+<div class="modal-ov" id="backupModal">
+  <div class="modal-admin modal-sm">
+    <div class="modal-admin-head">
+      <h2>🗄️ Backup Data</h2>
+      <button class="modal-close" onclick="closeBackupPanel()">✕</button>
+    </div>
+    <div class="modal-admin-body" id="backupModalBody">
+      <div class="backup-info-card">
+        <div class="backup-info-row">
+          <span>Backup otomatis setiap</span>
+          <strong>2 minggu</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Backup terakhir</span>
+          <strong id="lastBackupDate">Belum pernah</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Backup berikutnya</span>
+          <strong id="nextBackupDate">—</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Total data saat ini</span>
+          <strong id="backupDataCount">—</strong>
+        </div>
+      </div>
+      <div class="backup-desc">
+        <p>Saat backup dilakukan, semua data <strong>Ulasan</strong> dan <strong>Pesan Kontak</strong> yang ada akan disimpan ke node arsip Firebase, Data Destinasi Wisata tidak dihapus.</p>
+      </div>
+      <div id="backupProgress" style="display:none" class="backup-progress">
+        <div class="backup-progress-bar"><div id="backupProgressFill" class="backup-progress-fill"></div></div>
+        <p id="backupProgressText" class="backup-progress-text">Menyiapkan backup...</p>
+      </div>
+    </div>
+    <div class="modal-admin-foot">
+      <button class="btn-cancel-modal" onclick="closeBackupPanel()">Tutup</button>
+      <button class="btn-save-modal" id="btnDoBackup" onclick="doManualBackup()">🗄️ Backup Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- DATABASE INFO MODAL -->
+<div class="modal-ov" id="dbInfoModal">
+  <div class="modal-admin modal-sm">
+    <div class="modal-admin-head">
+      <h2>🔌 Status Database</h2>
+      <button class="modal-close" onclick="closeDbInfo()">✕</button>
+    </div>
+    <div class="modal-admin-body">
+      <div class="backup-info-card">
+        <div class="backup-info-row">
+          <span>Project</span>
+          <strong>pariwisata-daf3d</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Region</span>
+          <strong>asia-southeast1</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Status Koneksi</span>
+          <strong id="dbStatusText">🟡 Memeriksa...</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Total Destinasi</span>
+          <strong id="dbCountWisata">—</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Total Ulasan</span>
+          <strong id="dbCountReviews">—</strong>
+        </div>
+        <div class="backup-info-row">
+          <span>Total Pesan</span>
+          <strong id="dbCountContacts">—</strong>
+        </div>
+      </div>
+    </div>
+    <div class="modal-admin-foot">
+      <button class="btn-cancel-modal" onclick="closeDbInfo()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script src="admin-script.js"></script>
+</body>
+</html>
