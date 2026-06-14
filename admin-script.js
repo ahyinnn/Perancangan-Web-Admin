@@ -1,54 +1,46 @@
-/* ================================================================
-   ADMIN PANEL — CatchyPinang
-   Realtime CRUD via Firebase Realtime Database
-   ================================================================ */
+/* ADMIN PANEL — CatchyPinang
+   CRUD realtime menggunakan Firebase Realtime Database*/
 
-/* ----------------------------------------------------------------
-   CREDENTIALS (simpel, cukup untuk demo akademik)
-   ---------------------------------------------------------------- */
+
+/* KREDENSIAL LOGIN ADMIN */
 const ADMIN_CREDS = {
   username: "admin",
   password: "catchypinang2025"
 };
 
-/* ----------------------------------------------------------------
-   STATE
-   ---------------------------------------------------------------- */
-let allWisata    = [];   // [{fbKey, id, nama, kat, ...}]
-let allReviews   = [];   // [{fbKey, wisataId, wisataName, name, ...}]
-let allContacts  = [];   // [{fbKey, nama, email, ...}]
-let editingKey   = null; // fbKey sedang diedit
-let deleteAction = null; // fn yang dipanggil saat konfirmasi hapus
 
-/* ----------------------------------------------------------------
-   FIREBASE HELPERS
-   ---------------------------------------------------------------- */
-function db()   { return window._fbDb; }
-function fbRef(path)  { return window._fbRef(db(), path); }
+/* STATE GLOBAL
+   Variabel yang dipakai bersama di seluruh halaman */
+let allWisata    = [];   // daftar semua destinasi wisata
+let allReviews   = [];   // daftar semua ulasan
+let allContacts  = [];   // daftar semua pesan kontak
+let editingKey   = null; // fbKey destinasi yang sedang diedit
+let deleteAction = null; // fungsi hapus yang dipanggil saat konfirmasi
 
-async function fbSet(path, data) {
-  await window._fbSet(fbRef(path), data);
-}
-async function fbPush(path, data) {
-  return await window._fbPush(fbRef(path), data);
-}
-async function fbDel(path) {
-  await window._fbRemove(fbRef(path));
-}
-async function fbUpdate(path, data) {
-  await window._fbUpdate(fbRef(path), data);
-}
+
+/* FIREBASE HELPERS
+   Pembungkus fungsi Firebase agar lebih ringkas */
+function db()              { return window._fbDb; }
+function fbRef(path)       { return window._fbRef(db(), path); }
+
+async function fbSet(path, data)    { await window._fbSet(fbRef(path), data); }
+async function fbPush(path, data)   { return await window._fbPush(fbRef(path), data); }
+async function fbDel(path)          { await window._fbRemove(fbRef(path)); }
+async function fbUpdate(path, data) { await window._fbUpdate(fbRef(path), data); }
+
+// Langganan perubahan data secara realtime
 function fbListen(path, cb) {
   return window._fbOnValue(fbRef(path), snap => cb(snap.val()));
 }
 
-/* ----------------------------------------------------------------
-   AUTH
-   ---------------------------------------------------------------- */
+
+/* AUTENTIKASI
+   Login, logout, dan validasi sesi admin */
 function isLoggedIn() {
   return sessionStorage.getItem("cp_admin_auth") === "1";
 }
 
+// Proses login: validasi input lalu cek kredensial
 function doAdminLogin() {
   const u = document.getElementById("adminUser").value.trim();
   const p = document.getElementById("adminPass").value;
@@ -67,46 +59,48 @@ function doAdminLogin() {
   showAdminApp();
 }
 
+// Hapus sesi dan reload halaman
 function doAdminLogout() {
   sessionStorage.removeItem("cp_admin_auth");
   location.reload();
 }
 
-/* --- Logout Confirm --- */
+/* Konfirmasi logout sebelum keluar */
 function askLogout() {
-  // Tutup gear menu dulu
   const gm = document.getElementById("gearMenu");
   if (gm) gm.classList.remove("open");
   document.getElementById("logoutConfirmOv").classList.add("open");
 }
 function confirmLogout() {
-  document.getElementById("logoutConfirmOv").classList.add("open");
+  doAdminLogout();
 }
 function closeLogoutConfirm() {
   document.getElementById("logoutConfirmOv").classList.remove("open");
 }
 
+// Toggle tampil/sembunyikan password
 function togglePw() {
   const inp = document.getElementById("adminPass");
   inp.type = inp.type === "password" ? "text" : "password";
 }
 
-/* ----------------------------------------------------------------
-   INIT
-   ---------------------------------------------------------------- */
+
+/* INISIALISASI
+   Dijalankan setelah login berhasil */
 function init() {
-  // Update tanggal di header
+  // Tampilkan tanggal hari ini di header
   document.getElementById("headerDate").textContent =
     new Date().toLocaleDateString("id-ID", {
       weekday: "long", day: "numeric", month: "long", year: "numeric"
     });
 
-  // Subscribe realtime ke semua data
+  // Mulai mendengarkan perubahan data dari Firebase
   listenWisata();
   listenReviews();
   listenContacts();
 }
 
+// Sembunyikan halaman login, tampilkan panel admin
 function showAdminApp() {
   document.getElementById("loginPage").style.display = "none";
   document.getElementById("adminApp").style.display  = "flex";
@@ -114,19 +108,20 @@ function showAdminApp() {
   checkBackupSchedule();
 }
 
-/* ----------------------------------------------------------------
-   REALTIME LISTENERS
-   ---------------------------------------------------------------- */
+
+/* REALTIME LISTENERS
+   Mendengarkan perubahan data Firebase dan memperbarui tampilan */
+
+// Listener data wisata: update tabel, stat, dan deteksi data baru
 function listenWisata() {
   fbListen("wisata", data => {
     if (!data) {
       allWisata = [];
     } else {
       allWisata = Object.entries(data).map(([k, v]) => ({ fbKey: k, ...v }));
-      // Urutkan berdasarkan id (numerik) jika ada, atau fbKey
       allWisata.sort((a, b) => (a.id || 0) - (b.id || 0));
     }
-    // Detect new wisata
+    // Deteksi wisata baru untuk notifikasi badge
     if (_knownWisataKeys !== null) {
       const newOnes = allWisata.filter(w => !_knownWisataKeys.has(w.fbKey));
       if (newOnes.length) {
@@ -145,20 +140,22 @@ function listenWisata() {
   });
 }
 
-// Track known keys for notif detection
+// Tracker fbKey untuk deteksi data baru (null = belum inisialisasi)
 let _knownReviewKeys  = null;
 let _knownContactKeys = null;
 let _knownWisataKeys  = null;
 
-// Badge counter: hanya item BARU (belum dibaca)
+// Counter badge untuk item baru yang belum dibaca
 const newCounts = { wisata: 0, reviews: 0, contacts: 0 };
 
+// Reset badge counter saat halaman section dibuka
 function clearBadge(section) {
   newCounts[section] = 0;
   const map = { wisata: 'badgeWisata', reviews: 'badgeReviews', contacts: 'badgeContacts' };
   updateBadge(map[section], 0);
 }
 
+// Listener data ulasan: flatten struktur nested Firebase lalu update tabel
 function listenReviews() {
   fbListen("reviews", data => {
     allReviews = [];
@@ -174,7 +171,7 @@ function listenReviews() {
       });
       allReviews.sort((a, b) => (b.ts || 0) - (a.ts || 0));
     }
-    // Detect new reviews
+    // Deteksi ulasan baru untuk notifikasi badge
     if (_knownReviewKeys !== null) {
       const newOnes = allReviews.filter(r => !_knownReviewKeys.has(r.fbKey));
       if (newOnes.length) {
@@ -185,10 +182,6 @@ function listenReviews() {
     }
     _knownReviewKeys = new Set(allReviews.map(r => r.fbKey));
 
-    // Badge hanya new
-    if (_knownReviewKeys !== null) {
-      // (newOnes sudah di-push di atas)
-    }
     const total = allReviews.length;
     document.getElementById("statReviews").textContent = total;
     renderReviewTable();
@@ -197,6 +190,7 @@ function listenReviews() {
   });
 }
 
+// Listener data kontak: update tabel dan deteksi pesan baru
 function listenContacts() {
   fbListen("contacts", data => {
     allContacts = [];
@@ -204,7 +198,7 @@ function listenContacts() {
       allContacts = Object.entries(data).map(([k, v]) => ({ fbKey: k, ...v }));
       allContacts.sort((a, b) => (b.ts || 0) - (a.ts || 0));
     }
-    // Detect new contacts
+    // Deteksi pesan kontak baru untuk notifikasi badge
     if (_knownContactKeys !== null) {
       const newOnes = allContacts.filter(c => !_knownContactKeys.has(c.fbKey));
       if (newOnes.length) {
@@ -220,25 +214,26 @@ function listenContacts() {
   });
 }
 
-/* ----------------------------------------------------------------
-   NAVIGATION
-   ---------------------------------------------------------------- */
+
+/* NAVIGASI
+   Pindah antar view, sidebar, dan gear menu */
+
+// Ganti tampilan aktif dan reset badge section terkait
 function switchView(name) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.getElementById("view-" + name).classList.add("active");
   document.querySelectorAll(".snav-item").forEach(s => s.classList.remove("active"));
   document.getElementById("snav-" + name).classList.add("active");
-  // Hapus badge saat halaman dibuka
   if (name === "wisata")   clearBadge("wisata");
   if (name === "reviews")  clearBadge("reviews");
   if (name === "contacts") clearBadge("contacts");
-  // Tutup notif panel & gear menu saat pindah halaman
   closeNotifPanel();
   const gm = document.getElementById("gearMenu");
   if (gm) gm.classList.remove("open");
   closeSidebar();
 }
 
+// Buka/tutup sidebar (mobile)
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("sidebarOv").classList.toggle("open");
@@ -248,8 +243,7 @@ function closeSidebar() {
   document.getElementById("sidebarOv").classList.remove("open");
 }
 
-/* --- Sidebar Expand (Google Classroom style) --- */
-// expanded = diklik & di-pin terbuka; hover selalu buka tanpa pin
+/* Sidebar expand: klik untuk pin terbuka, hover untuk sementara */
 let sidebarPinned = false;
 function toggleSidebarExpand() {
   sidebarPinned = !sidebarPinned;
@@ -264,15 +258,15 @@ function toggleSidebarExpand() {
   }
 }
 
-/* --- Gear Menu --- */
+// Buka/tutup dropdown menu pengaturan
 function toggleGearMenu(e) {
   e.stopPropagation();
   document.getElementById("gearMenu").classList.toggle("open");
 }
 
-/* ----------------------------------------------------------------
-   BADGE
-   ---------------------------------------------------------------- */
+
+/* BADGE NOTIFIKASI
+   Tampilkan jumlah item baru di nav sidebar */
 function updateBadge(id, n) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -280,9 +274,11 @@ function updateBadge(id, n) {
   el.style.display = n > 0 ? "flex" : "none";
 }
 
-/* ----------------------------------------------------------------
-   DASHBOARD — recent items
-   ---------------------------------------------------------------- */
+
+/* DASHBOARD — ITEM TERBARU
+   Tampilkan 5 data terbaru di halaman dashboard */
+
+// Render 5 destinasi wisata terbaru
 function renderRecentWisata() {
   const el = document.getElementById("recentWisata");
   if (!allWisata.length) {
@@ -298,6 +294,7 @@ function renderRecentWisata() {
     </div>`).join("");
 }
 
+// Render 5 ulasan terbaru
 function renderRecentReviews() {
   const el = document.getElementById("recentReviews");
   if (!allReviews.length) {
@@ -315,9 +312,11 @@ function renderRecentReviews() {
     </div>`).join("");
 }
 
-/* ----------------------------------------------------------------
-   WISATA TABLE
-   ---------------------------------------------------------------- */
+
+/* TABEL WISATA
+   Render dan filter tabel daftar destinasi */
+
+// Render tabel wisata (default: semua data, bisa difilter)
 function renderWisataTable(list) {
   const rows = list !== undefined ? list : allWisata;
   const tbody = document.getElementById("wisataTableBody");
@@ -353,6 +352,7 @@ function renderWisataTable(list) {
     </tr>`).join("");
 }
 
+// Filter tabel wisata berdasarkan pencarian teks dan kategori
 function filterWisataTable() {
   const q   = document.getElementById("wisataSearch").value.toLowerCase();
   const kat = document.getElementById("wisataFilterKat").value;
@@ -363,21 +363,24 @@ function filterWisataTable() {
   renderWisataTable(res);
 }
 
-/* ----------------------------------------------------------------
-   WISATA FORM MODAL
-   ---------------------------------------------------------------- */
+
+/* 
+   FORM MODAL WISATA
+   Tambah dan edit destinasi wisata */
+
+// Buka modal form: kosong untuk tambah, isi data jika edit
 function openFormModal(fbKey) {
   editingKey = fbKey || null;
   const w = fbKey ? allWisata.find(x => x.fbKey === fbKey) : null;
   document.getElementById("formModalTitle").textContent =
     w ? "Edit Destinasi Wisata" : "Tambah Destinasi Baru";
 
-  // Reset errors
+  // Reset pesan error validasi
   ["fNama","fKat","fDesk","fLok"].forEach(id => {
     document.getElementById("ef" + id.charAt(1).toUpperCase() + id.slice(2))?.classList.remove("show");
   });
 
-  // Fill or clear
+  // Isi form dengan data existing atau kosongkan untuk tambah baru
   document.getElementById("fNama").value   = w ? w.nama  || "" : "";
   document.getElementById("fKat").value    = w ? w.kat   || "" : "";
   document.getElementById("fDesk").value   = w ? w.desk  || "" : "";
@@ -398,12 +401,14 @@ function closeFormModal() {
   editingKey = null;
 }
 
+// Simpan data wisata: update jika edit, push baru jika tambah
 async function saveWisata() {
   const nama  = document.getElementById("fNama").value.trim();
   const kat   = document.getElementById("fKat").value;
   const desk  = document.getElementById("fDesk").value.trim();
   const lok   = document.getElementById("fLok").value.trim();
 
+  // Validasi field wajib
   let valid = true;
   document.getElementById("efNama").classList.toggle("show", !nama); if (!nama) valid = false;
   document.getElementById("efKat").classList.toggle("show",  !kat);  if (!kat)  valid = false;
@@ -434,11 +439,10 @@ async function saveWisata() {
 
   try {
     if (editingKey) {
-      // Update existing
       await fbUpdate("wisata/" + editingKey, data);
       toast("✅ Destinasi berhasil diperbarui!");
     } else {
-      // Generate id baru (max id + 1)
+      // Auto-increment id berdasarkan id terbesar yang ada
       const maxId = allWisata.reduce((m, w) => Math.max(m, w.id || 0), 0);
       data.id = maxId + 1;
       data.createdAt = new Date().toISOString();
@@ -455,9 +459,11 @@ async function saveWisata() {
   }
 }
 
-/* ----------------------------------------------------------------
-   DELETE WISATA
-   ---------------------------------------------------------------- */
+
+/* HAPUS WISATA
+   Konfirmasi dan eksekusi penghapusan destinasi */
+
+// Tampilkan dialog konfirmasi sebelum hapus
 function confirmDeleteWisata(fbKey, nama) {
   document.getElementById("confirmTitle").textContent = "Hapus Destinasi?";
   document.getElementById("confirmMsg").textContent =
@@ -467,6 +473,7 @@ function confirmDeleteWisata(fbKey, nama) {
   document.getElementById("confirmOv").classList.add("open");
 }
 
+// Hapus destinasi dari Firebase
 async function deleteWisata(fbKey, nama) {
   try {
     await fbDel("wisata/" + fbKey);
@@ -482,9 +489,11 @@ function closeConfirm() {
   deleteAction = null;
 }
 
-/* ----------------------------------------------------------------
-   REVIEW TABLE
-   ---------------------------------------------------------------- */
+
+/* TABEL ULASAN
+   Render, filter, dan hapus ulasan pengunjung */
+
+// Isi dropdown filter berdasarkan daftar wisata yang ada
 function populateReviewFilter() {
   const sel = document.getElementById("reviewFilterWisata");
   const cur = sel.value;
@@ -493,6 +502,7 @@ function populateReviewFilter() {
   sel.value = cur;
 }
 
+// Render tabel ulasan (default: semua, bisa difilter)
 function renderReviewTable(list) {
   const rows  = list !== undefined ? list : allReviews;
   const tbody = document.getElementById("reviewTableBody");
@@ -526,8 +536,9 @@ function renderReviewTable(list) {
     </tr>`).join("");
 }
 
+// Filter tabel ulasan berdasarkan pencarian teks dan destinasi
 function filterReviewTable() {
-  const q       = document.getElementById("reviewSearch").value.toLowerCase();
+  const q        = document.getElementById("reviewSearch").value.toLowerCase();
   const wisataId = document.getElementById("reviewFilterWisata").value;
   const res = allReviews.filter(r =>
     (!wisataId || String(r.wisataId) === String(wisataId)) &&
@@ -536,6 +547,7 @@ function filterReviewTable() {
   renderReviewTable(res);
 }
 
+// Konfirmasi dan hapus ulasan dari Firebase
 function confirmDeleteReview(wisataId, fbKey, name) {
   document.getElementById("confirmTitle").textContent = "Hapus Ulasan?";
   document.getElementById("confirmMsg").textContent =
@@ -552,9 +564,11 @@ function confirmDeleteReview(wisataId, fbKey, name) {
   document.getElementById("confirmOv").classList.add("open");
 }
 
-/* ----------------------------------------------------------------
-   CONTACT TABLE
-   ---------------------------------------------------------------- */
+
+/* TABEL PESAN KONTAK
+   Render, filter, lihat detail, dan hapus pesan kontak */
+
+// Render tabel pesan kontak (default: semua, bisa difilter)
 function renderContactTable(list) {
   const rows  = list !== undefined ? list : allContacts;
   const tbody = document.getElementById("contactTableBody");
@@ -585,6 +599,7 @@ function renderContactTable(list) {
     </tr>`).join("");
 }
 
+// Filter tabel kontak berdasarkan pencarian teks dan topik
 function filterContactTable() {
   const q     = document.getElementById("contactSearch").value.toLowerCase();
   const topik = document.getElementById("contactFilterTopik").value;
@@ -597,6 +612,7 @@ function filterContactTable() {
   renderContactTable(res);
 }
 
+// Tampilkan detail pesan kontak di modal
 function viewContact(fbKey) {
   const c = allContacts.find(x => x.fbKey === fbKey);
   if (!c) return;
@@ -629,6 +645,7 @@ function closeDetailModal() {
   document.getElementById("detailModal").classList.remove("open");
 }
 
+// Konfirmasi dan hapus pesan kontak dari Firebase
 function confirmDeleteContact(fbKey, nama) {
   document.getElementById("confirmTitle").textContent = "Hapus Pesan?";
   document.getElementById("confirmMsg").textContent =
@@ -645,9 +662,11 @@ function confirmDeleteContact(fbKey, nama) {
   document.getElementById("confirmOv").classList.add("open");
 }
 
-/* ----------------------------------------------------------------
-   HELPERS
-   ---------------------------------------------------------------- */
+
+/* FUNGSI HELPER
+   Utilitas kecil yang dipakai di banyak tempat */
+
+// Escape HTML untuk mencegah XSS
 function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -657,6 +676,7 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+// Kembalikan CSS class badge sesuai kategori wisata
 function catClass(k) {
   return k === "Sejarah & Budaya"  ? "cat-sejarah"  :
          k === "Religi & Spiritual" ? "cat-religi"   :
@@ -664,6 +684,7 @@ function catClass(k) {
          k === "Rekreasi Keluarga"  ? "cat-rekreasi" : "cat-kuliner";
 }
 
+// Render elemen thumbnail: gambar jika ada URL, emoji jika tidak
 function thumbEl(foto, em) {
   const f = Array.isArray(foto) ? foto[0] : foto;
   if (f && (f.startsWith("image/") || f.startsWith("http") || f.startsWith("/"))) {
@@ -675,6 +696,7 @@ function thumbEl(foto, em) {
   return `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%">${em || "🌴"}</span>`;
 }
 
+// Tampilkan notifikasi toast sementara di pojok layar
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -683,20 +705,24 @@ function toast(msg) {
   t._tmr = setTimeout(() => t.classList.remove("show"), 2800);
 }
 
-/* ----------------------------------------------------------------
-   STARTUP
-   ---------------------------------------------------------------- */
+
+/* STARTUP
+   Tunggu Firebase siap lalu inisialisasi panel */
+
+// Fallback: jika Firebase tidak merespon dalam 3 detik, lanjut manual
 let fbWaitTimer = setTimeout(() => {
   if (isLoggedIn()) showAdminApp();
   else hideLoading();
 }, 3000);
 
+// Jika Firebase siap, langsung inisialisasi
 document.addEventListener("firebaseReady", () => {
   clearTimeout(fbWaitTimer);
   if (isLoggedIn()) showAdminApp();
   else hideLoading();
 }, { once: true });
 
+// Sembunyikan loading screen dengan animasi fade
 function hideLoading() {
   const ls = document.getElementById("loading-screen");
   ls.style.opacity = "0";
@@ -708,15 +734,15 @@ window.addEventListener("load", () => {
 });
 
 
-/* ================================================================
-   KAPASITAS DATA
-   ================================================================ */
+/* KAPASITAS DATA
+   Batas maksimum jumlah data yang disimpan per kategori */
 const CAPACITY = {
   wisata:   100,
   reviews:  500,
   contacts: 300
 };
 
+// Render card progress bar kapasitas (normal / hampir penuh / penuh)
 function updateCapacityBar(barId, count, max, label) {
   const el = document.getElementById(barId);
   if (!el) return;
@@ -759,11 +785,12 @@ function updateCapacityBar(barId, count, max, label) {
     </div>`;
 }
 
-/* ================================================================
-   SISTEM NOTIFIKASI
-   ================================================================ */
+
+/* SISTEM NOTIFIKASI
+   Kelola notifikasi in-app untuk data baru */
 let notifications = [];
 
+// Tambah notifikasi baru ke daftar berdasarkan tipe data
 function pushNotif(type, data) {
   const id = Date.now() + "_" + Math.random().toString(36).slice(2);
   let icon, title, sub;
@@ -785,6 +812,7 @@ function pushNotif(type, data) {
   updateNotifDot();
 }
 
+// Render daftar notifikasi di panel
 function renderNotifList() {
   const list = document.getElementById("notifList");
   if (!notifications.length) {
@@ -802,6 +830,7 @@ function renderNotifList() {
     </div>`).join("");
 }
 
+// Tandai satu notifikasi sebagai sudah dibaca
 function readNotif(id) {
   const n = notifications.find(x => x.id === id);
   if (n) n.read = true;
@@ -809,21 +838,23 @@ function readNotif(id) {
   updateNotifDot();
 }
 
+// Tandai semua notifikasi sebagai sudah dibaca
 function markAllRead() {
   notifications.forEach(n => n.read = true);
   renderNotifList();
   updateNotifDot();
 }
 
+// Tampilkan/sembunyikan titik merah jika ada notifikasi belum dibaca
 function updateNotifDot() {
   const hasUnread = notifications.some(n => !n.read);
-  // Update semua dot yang ada (mobile topbar & desktop)
   ["notifDot", "notifDotDesktop"].forEach(id => {
     const dot = document.getElementById(id);
     if (dot) dot.style.display = hasUnread ? "block" : "none";
   });
 }
 
+// Buka/tutup panel notifikasi
 function toggleNotifPanel(e) {
   if (e) e.stopPropagation();
   document.getElementById("notifPanel").classList.toggle("open");
@@ -832,46 +863,44 @@ function closeNotifPanel() {
   document.getElementById("notifPanel").classList.remove("open");
 }
 
-/* ================================================================
-   BACKUP OTOMATIS SETIAP 2 MINGGU
-   ================================================================ */
-const BACKUP_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000; // 2 minggu
+
+/* BACKUP OTOMATIS
+   Backup data ulasan & kontak ke Firebase setiap 2 minggu= */
+const BACKUP_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000; // 2 minggu dalam ms
 const BACKUP_KEY = "cp_last_backup_ts";
 
+// Cek apakah sudah waktunya backup otomatis
 function checkBackupSchedule() {
   const last = parseInt(localStorage.getItem(BACKUP_KEY) || "0", 10);
   const now  = Date.now();
   if (now - last >= BACKUP_INTERVAL_MS) {
-    // Tunggu 3 detik setelah login agar data sudah dimuat
-    setTimeout(runScheduledBackup, 3000);
+    setTimeout(runScheduledBackup, 3000); // tunggu data selesai dimuat
   }
 }
 
 async function runScheduledBackup() {
-  await runBackup(true); // silent = true, tampil notif saja
+  await runBackup(true); // silent = hanya tampil toast, tanpa modal detail
 }
 
+// Jalankan proses backup: simpan ulasan & kontak ke node arsip Firebase
 async function runBackup(silent = false) {
   showBackupModal("running");
   try {
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
     const backupKey = "backups/" + ts;
 
-    // Salin ulasan ke backups/
     if (allReviews.length) {
       const reviewData = {};
       allReviews.forEach(r => { reviewData[r.fbKey] = r; });
       await fbSet(backupKey + "/reviews", reviewData);
     }
 
-    // Salin kontak ke backups/
     if (allContacts.length) {
       const contactData = {};
       allContacts.forEach(c => { contactData[c.fbKey] = c; });
       await fbSet(backupKey + "/contacts", contactData);
     }
 
-    // Simpan meta info backup
     await fbSet(backupKey + "/meta", { ts, totalReviews: allReviews.length, totalContacts: allContacts.length });
 
     localStorage.setItem(BACKUP_KEY, Date.now().toString());
@@ -885,6 +914,7 @@ async function runBackup(silent = false) {
   }
 }
 
+// Update tampilan modal backup sesuai state: running / success / error
 function showBackupModal(state, ts, errMsg) {
   const ov    = document.getElementById("backupModalOv");
   const icon  = document.getElementById("backupIcon");
@@ -902,7 +932,7 @@ function showBackupModal(state, ts, errMsg) {
     prog.style.display = "block";
     bar.style.width = "0%";
     btns.style.display = "none";
-    // Animasi progress bar
+    // Animasi progress bar palsu sampai 90%
     let w = 0;
     const iv = setInterval(() => {
       w = Math.min(w + 8, 90);
@@ -932,41 +962,43 @@ function showBackupModal(state, ts, errMsg) {
 
 function closeBackupModal() {
   document.getElementById("backupModalOv").classList.remove("open");
-  // Reset bar
+  // Reset progress bar ke kondisi awal
   const bar = document.getElementById("backupBar");
   bar.style.width = "0%";
   bar.style.background = "";
   bar.style.animation = "";
 }
 
-// Expose untuk tombol manual (jika dibutuhkan)
+// Expose ke global untuk dipanggil dari tombol manual di luar modul ini
 window.runBackupManual = () => runBackup(false);
 
-/* ----------------------------------------------------------------
-   BACKUP PANEL (modal baru)
-   ---------------------------------------------------------------- */
+
+/* PANEL BACKUP (Modal info & trigger backup manual) */
+
+// Buka panel backup dan tampilkan info backup terakhir & berikutnya
 function openBackupPanel() {
-  // Tutup gear menu
   const gm = document.getElementById("gearMenu");
   if (gm) gm.classList.remove("open");
-  // Update info sebelum buka
+
   const last = parseInt(localStorage.getItem(BACKUP_KEY) || "0", 10);
-  const lastEl = document.getElementById("lastBackupDate");
-  const nextEl = document.getElementById("nextBackupDate");
+  const lastEl  = document.getElementById("lastBackupDate");
+  const nextEl  = document.getElementById("nextBackupDate");
   const countEl = document.getElementById("backupDataCount");
+
   if (lastEl) lastEl.textContent = last ? new Date(last).toLocaleString("id-ID") : "Belum pernah";
   if (nextEl && last) {
-    const next = new Date(last + BACKUP_INTERVAL_MS);
-    nextEl.textContent = next.toLocaleString("id-ID");
+    nextEl.textContent = new Date(last + BACKUP_INTERVAL_MS).toLocaleString("id-ID");
   } else if (nextEl) {
     nextEl.textContent = "—";
   }
   if (countEl) countEl.textContent = `${allReviews.length} ulasan · ${allContacts.length} pesan`;
-  // Reset progress
+
+  // Reset state progress bar sebelum dibuka
   const prog = document.getElementById("backupProgress");
   if (prog) prog.style.display = "none";
   const btn = document.getElementById("btnDoBackup");
   if (btn) { btn.disabled = false; btn.textContent = "🗄️ Backup Sekarang"; }
+
   document.getElementById("backupModal").classList.add("open");
 }
 
@@ -974,42 +1006,50 @@ function closeBackupPanel() {
   document.getElementById("backupModal").classList.remove("open");
 }
 
+// Buka modal info koneksi dan statistik database
 function openDbInfo() {
   const gm = document.getElementById("gearMenu");
   if (gm) gm.classList.remove("open");
-  // Isi data
+
   const wEl = document.getElementById("dbCountWisata");
   const rEl = document.getElementById("dbCountReviews");
   const cEl = document.getElementById("dbCountContacts");
   const sEl = document.getElementById("dbStatusText");
+
   if (wEl) wEl.textContent = allWisata.length + " destinasi";
   if (rEl) rEl.textContent = allReviews.length + " ulasan";
   if (cEl) cEl.textContent = allContacts.length + " pesan";
   if (sEl) sEl.textContent = "🟢 Terhubung (Realtime)";
+
   document.getElementById("dbInfoModal").classList.add("open");
 }
 function closeDbInfo() {
   document.getElementById("dbInfoModal").classList.remove("open");
 }
 
+// Proses backup manual dari tombol di panel backup
 async function doManualBackup() {
-  const btn = document.getElementById("btnDoBackup");
+  const btn  = document.getElementById("btnDoBackup");
   const prog = document.getElementById("backupProgress");
   const fill = document.getElementById("backupProgressFill");
   const txt  = document.getElementById("backupProgressText");
+
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Memproses..."; }
   if (prog) prog.style.display = "block";
   if (fill) fill.style.width = "0%";
   if (txt)  txt.textContent = "Menyiapkan backup...";
-  // Animasi progress
+
+  // Animasi progress bar palsu selama proses berjalan
   let w = 0;
   const iv = setInterval(() => {
     w = Math.min(w + 10, 85);
     if (fill) fill.style.width = w + "%";
   }, 200);
+
   try {
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
     const backupKey = "backups/" + ts;
+
     if (allReviews.length) {
       const reviewData = {};
       allReviews.forEach(r => { reviewData[r.fbKey] = r; });
@@ -1021,6 +1061,7 @@ async function doManualBackup() {
       await fbSet(backupKey + "/contacts", contactData);
     }
     await fbSet(backupKey + "/meta", { ts, totalReviews: allReviews.length, totalContacts: allContacts.length });
+
     localStorage.setItem(BACKUP_KEY, Date.now().toString());
     clearInterval(iv);
     if (fill) { fill.style.width = "100%"; fill.style.background = "#10b981"; }
@@ -1038,15 +1079,17 @@ async function doManualBackup() {
 }
 
 
-// Tutup modal saat klik di luar
+/* EVENT LISTENERS GLOBAL
+   Tutup modal/dropdown saat klik di luar area */
 document.addEventListener("click", e => {
-  // Tutup gear menu
+  // Tutup gear menu jika klik di luar wrapper-nya
   const gm = document.getElementById("gearMenu");
   const gw = document.getElementById("gearWrap");
   if (gm && gw && !gw.contains(e.target)) {
     gm.classList.remove("open");
   }
-  // Tutup notif panel jika klik di luar
+
+  // Tutup panel notifikasi jika klik di luar panel dan tombol bell
   const np = document.getElementById("notifPanel");
   const nbDesktop = document.getElementById("desktopNotifBtn");
   const nbMobile  = document.getElementById("topbarNotifBtn");
@@ -1056,6 +1099,8 @@ document.addEventListener("click", e => {
       || (nbMobile  && nbMobile.contains(e.target));
     if (!clickedInside) closeNotifPanel();
   }
+
+  // Tutup modal jika klik pada overlay (latar belakang gelap)
   const fModal = document.getElementById("formModal");
   const dModal = document.getElementById("detailModal");
   if (e.target === fModal)   closeFormModal();
@@ -1063,7 +1108,7 @@ document.addEventListener("click", e => {
   if (e.target === document.getElementById("confirmOv")) closeConfirm();
 });
 
-// Enter key di login
+// Submit login dengan tombol Enter di field password
 document.addEventListener("DOMContentLoaded", () => {
   const passEl = document.getElementById("adminPass");
   if (passEl) passEl.addEventListener("keydown", e => {
