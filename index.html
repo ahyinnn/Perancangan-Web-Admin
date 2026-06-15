@@ -58,7 +58,6 @@
 <!-- CONFIRM DIALOG -->
 <div class="confirm-ov" id="confirmOv">
   <div class="confirm-box">
-    <div class="confirm-icon">🗑️</div>
     <h3 id="confirmTitle">Hapus Destinasi?</h3>
     <p id="confirmMsg">Tindakan ini tidak dapat dibatalkan. Data akan terhapus permanen dari database.</p>
     <div class="confirm-btns">
@@ -71,7 +70,6 @@
 <!-- LOGOUT CONFIRM DIALOG -->
 <div class="confirm-ov" id="logoutConfirmOv">
   <div class="confirm-box">
-    <div class="confirm-icon">👋</div>
     <h3>Keluar dari Panel Admin?</h3>
     <p>Sesi Anda akan diakhiri. Anda perlu login kembali untuk mengakses panel admin.</p>
     <div class="confirm-btns">
@@ -130,23 +128,19 @@
     </div>
     <nav class="sidebar-nav">
       <a class="snav-item active" onclick="switchView('dashboard')" id="snav-dashboard">
-        <span class="snav-icon">📊</span>
         <span>Dashboard</span>
       </a>
       <a class="snav-item" onclick="switchView('wisata')" id="snav-wisata">
-        <span class="snav-icon">🗺️</span>
         <span>Destinasi Wisata</span>
         <span class="snav-badge" id="badgeWisata">0</span>
         <span class="snav-cap" id="capWisata"></span>
       </a>
       <a class="snav-item" onclick="switchView('reviews')" id="snav-reviews">
-        <span class="snav-icon">⭐</span>
         <span>Ulasan</span>
         <span class="snav-badge" id="badgeReviews">0</span>
         <span class="snav-cap" id="capReviews"></span>
       </a>
       <a class="snav-item" onclick="switchView('contacts')" id="snav-contacts">
-        <span class="snav-icon">📬</span>
         <span>Pesan Kontak</span>
         <span class="snav-badge" id="badgeContacts">0</span>
         <span class="snav-cap" id="capContacts"></span>
@@ -169,10 +163,10 @@
       <div class="gear-wrap" id="gearWrap">
         <button class="btn-gear" onclick="toggleGearMenu(event)" title="Pengaturan">⚙️</button>
         <div class="gear-menu" id="gearMenu">
-          <button class="gear-item" onclick="openBackupPanel()">🗄️ Backup Sekarang</button>
+          <button class="gear-item" onclick="openBackupPanel()">Backup Sekarang</button>
           <button class="gear-item" onclick="openDbInfo()">🔌 Status Database</button>
           <div class="gear-divider"></div>
-          <button class="gear-item gear-logout" onclick="askLogout()">🚪 Keluar</button>
+          <button class="gear-item gear-logout" onclick="askLogout()">Keluar</button>
         </div>
       </div>
     </div>
@@ -187,7 +181,7 @@
         🔔
         <span class="notif-dot" id="notifDot" style="display:none"></span>
       </button>
-      <button class="btn-gear" style="font-size:1.2rem" onclick="askLogout()" title="Keluar">🚪</button>
+      <button class="btn-gear" style="font-size:1.2rem" onclick="askLogout()" title="Keluar"></button>
     </div>
   </div>
   <div class="sidebar-overlay" id="sidebarOv" onclick="closeSidebar()"></div>
@@ -215,7 +209,6 @@
 
       <div class="stats-grid">
         <div class="stat-card-admin">
-          <div class="stat-icon-bg sc-primary">🗺️</div>
           <div class="stat-info">
             <div class="stat-num-admin" id="statWisata">—</div>
             <div class="stat-lbl-admin">Total Destinasi</div>
@@ -223,7 +216,6 @@
           </div>
         </div>
         <div class="stat-card-admin">
-          <div class="stat-icon-bg sc-green">⭐</div>
           <div class="stat-info">
             <div class="stat-num-admin" id="statReviews">—</div>
             <div class="stat-lbl-admin">Total Ulasan</div>
@@ -231,7 +223,6 @@
           </div>
         </div>
         <div class="stat-card-admin">
-          <div class="stat-icon-bg sc-orange">📬</div>
           <div class="stat-info">
             <div class="stat-num-admin" id="statContacts">—</div>
             <div class="stat-lbl-admin">Pesan Masuk</div>
@@ -239,7 +230,6 @@
           </div>
         </div>
         <div class="stat-card-admin">
-          <div class="stat-icon-bg sc-purple">📂</div>
           <div class="stat-info">
             <div class="stat-num-admin" id="statKategori">5</div>
             <div class="stat-lbl-admin">Kategori Wisata</div>
@@ -323,7 +313,6 @@
       </div>
       <div class="table-controls">
         <div class="search-admin">
-          <span>🔍</span>
           <input type="text" placeholder="Cari ulasan..." id="reviewSearch" oninput="filterReviewTable()">
         </div>
         <select class="select-admin" id="reviewFilterWisata" onchange="filterReviewTable()">
@@ -364,7 +353,6 @@
       </div>
       <div class="table-controls">
         <div class="search-admin">
-          <span>🔍</span>
           <input type="text" placeholder="Cari pesan..." id="contactSearch" oninput="filterContactTable()">
         </div>
         <select class="select-admin" id="contactFilterTopik" onchange="filterContactTable()">
@@ -394,7 +382,6 @@
         </table>
       </div>
       <div class="table-empty" id="contactEmpty" style="display:none">
-        <div>📬</div>
         <p>Belum ada pesan masuk</p>
       </div>
     </div>
@@ -457,7 +444,7 @@
       </div>
       <div class="fg">
         <label>Emoji Ikon</label>
-        <input type="text" class="fi" id="fEm" placeholder="cth. 🏛️" maxlength="4">
+        <input type="text" class="fi" id="fEm" maxlength="4">
       </div>
       <div class="fg">
         <label>URL Foto (pisahkan dengan koma)</label>
@@ -500,7 +487,7 @@
 <div class="modal-ov" id="backupModal">
   <div class="modal-admin modal-sm">
     <div class="modal-admin-head">
-      <h2>🗄️ Backup Data</h2>
+      <h2>Backup Data</h2>
       <button class="modal-close" onclick="closeBackupPanel()">✕</button>
     </div>
     <div class="modal-admin-body" id="backupModalBody">
@@ -532,7 +519,7 @@
     </div>
     <div class="modal-admin-foot">
       <button class="btn-cancel-modal" onclick="closeBackupPanel()">Tutup</button>
-      <button class="btn-save-modal" id="btnDoBackup" onclick="doManualBackup()">🗄️ Backup Sekarang</button>
+      <button class="btn-save-modal" id="btnDoBackup" onclick="doManualBackup()">Backup Sekarang</button>
     </div>
   </div>
 </div>
@@ -556,7 +543,7 @@
         </div>
         <div class="backup-info-row">
           <span>Status Koneksi</span>
-          <strong id="dbStatusText">🟡 Memeriksa...</strong>
+          <strong id="dbStatusText">Memeriksa...</strong>
         </div>
         <div class="backup-info-row">
           <span>Total Destinasi</span>
