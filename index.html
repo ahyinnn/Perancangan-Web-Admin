@@ -58,6 +58,7 @@
 <!-- CONFIRM DIALOG -->
 <div class="confirm-ov" id="confirmOv">
   <div class="confirm-box">
+    <div class="confirm-icon"></div>
     <h3 id="confirmTitle">Hapus Destinasi?</h3>
     <p id="confirmMsg">Tindakan ini tidak dapat dibatalkan. Data akan terhapus permanen dari database.</p>
     <div class="confirm-btns">
@@ -70,6 +71,7 @@
 <!-- LOGOUT CONFIRM DIALOG -->
 <div class="confirm-ov" id="logoutConfirmOv">
   <div class="confirm-box">
+    <div class="confirm-icon"></div>
     <h3>Keluar dari Panel Admin?</h3>
     <p>Sesi Anda akan diakhiri. Anda perlu login kembali untuk mengakses panel admin.</p>
     <div class="confirm-btns">
@@ -104,7 +106,7 @@
       <label>Password</label>
       <div class="pw-wrap">
         <input type="password" class="fi" id="adminPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
-        <button class="pw-toggle" onclick="togglePw()" id="pwToggle">👁️</button>
+        <button class="pw-toggle" onclick="togglePw()" id="pwToggle">Lihat</button>
       </div>
       <div class="err" id="errPass">Password wajib diisi</div>
     </div>
@@ -124,23 +126,27 @@
         <div class="sidebar-logo">Catchy<span>Pinang</span></div>
         <div class="sidebar-badge">Admin</div>
       </div>
-      <button class="sidebar-close-btn" id="sidebarCloseBtn" onclick="closeSidebar()" title="Tutup sidebar">☰</button>
+      <button class="sidebar-close-btn" id="sidebarCloseBtn" onclick="closeSidebar()" title="Tutup sidebar">&#9776;</button>
     </div>
     <nav class="sidebar-nav">
       <a class="snav-item active" onclick="switchView('dashboard')" id="snav-dashboard">
+        <span class="snav-icon"></span>
         <span>Dashboard</span>
       </a>
       <a class="snav-item" onclick="switchView('wisata')" id="snav-wisata">
+        <span class="snav-icon"></span>
         <span>Destinasi Wisata</span>
         <span class="snav-badge" id="badgeWisata">0</span>
         <span class="snav-cap" id="capWisata"></span>
       </a>
       <a class="snav-item" onclick="switchView('reviews')" id="snav-reviews">
+        <span class="snav-icon"></span>
         <span>Ulasan</span>
         <span class="snav-badge" id="badgeReviews">0</span>
         <span class="snav-cap" id="capReviews"></span>
       </a>
       <a class="snav-item" onclick="switchView('contacts')" id="snav-contacts">
+        <span class="snav-icon"></span>
         <span>Pesan Kontak</span>
         <span class="snav-badge" id="badgeContacts">0</span>
         <span class="snav-cap" id="capContacts"></span>
@@ -164,7 +170,7 @@
         <button class="btn-gear" onclick="toggleGearMenu(event)" title="Pengaturan">⚙️</button>
         <div class="gear-menu" id="gearMenu">
           <button class="gear-item" onclick="openBackupPanel()">Backup Sekarang</button>
-          <button class="gear-item" onclick="openDbInfo()">🔌 Status Database</button>
+          <button class="gear-item" onclick="openDbInfo()">Status Database</button>
           <div class="gear-divider"></div>
           <button class="gear-item gear-logout" onclick="askLogout()">Keluar</button>
         </div>
@@ -174,14 +180,14 @@
 
   <!-- MOBILE TOPBAR -->
   <div class="topbar" id="topbar">
-    <button class="topbar-ham" onclick="toggleSidebar()" id="topbarHam">☰</button>
+    <button class="topbar-ham" onclick="toggleSidebar()" id="topbarHam">&#9776;</button>
     <div class="topbar-logo">Catchy<span>Pinang</span></div>
     <div class="topbar-actions">
       <button class="topbar-notif" id="topbarNotifBtn" onclick="toggleNotifPanel(event)">
-        🔔
+        Notifikasi
         <span class="notif-dot" id="notifDot" style="display:none"></span>
       </button>
-      <button class="btn-gear" style="font-size:1.2rem" onclick="askLogout()" title="Keluar"></button>
+      <button class="btn-gear" style="font-size:1.2rem" onclick="askLogout()" title="Keluar">Keluar</button>
     </div>
   </div>
   <div class="sidebar-overlay" id="sidebarOv" onclick="closeSidebar()"></div>
@@ -200,7 +206,7 @@
           <div class="header-date" id="headerDate"></div>
           <div class="notif-wrap" id="desktopNotifWrap">
             <button class="notif-bell-btn" id="desktopNotifBtn" onclick="toggleNotifPanel(event)" title="Notifikasi">
-              🔔
+              Notifikasi
               <span class="notif-dot" id="notifDotDesktop" style="display:none"></span>
             </button>
           </div>
@@ -266,7 +272,6 @@
       </div>
       <div class="table-controls">
         <div class="search-admin">
-          <span>🔍</span>
           <input type="text" placeholder="Cari destinasi..." id="wisataSearch" oninput="filterWisataTable()">
         </div>
         <select class="select-admin" id="wisataFilterKat" onchange="filterWisataTable()">
@@ -297,7 +302,6 @@
         </table>
       </div>
       <div class="table-empty" id="wisataEmpty" style="display:none">
-        <div>🗺️</div>
         <p>Belum ada destinasi wisata</p>
         <button class="btn-primary-admin" onclick="openFormModal()">+ Tambah Destinasi</button>
       </div>
@@ -338,7 +342,6 @@
         </table>
       </div>
       <div class="table-empty" id="reviewEmpty" style="display:none">
-        <div>⭐</div>
         <p>Belum ada ulasan masuk</p>
       </div>
     </div>
@@ -394,7 +397,7 @@
   <div class="modal-admin">
     <div class="modal-admin-head">
       <h2 id="formModalTitle">Tambah Destinasi Wisata</h2>
-      <button class="modal-close" onclick="closeFormModal()">✕</button>
+      <button class="modal-close" onclick="closeFormModal()">&#10005;</button>
     </div>
     <div class="modal-admin-body">
       <div class="form-grid-2">
@@ -444,7 +447,7 @@
       </div>
       <div class="fg">
         <label>Emoji Ikon</label>
-        <input type="text" class="fi" id="fEm" maxlength="4">
+        <input type="text" class="fi" id="fEm" placeholder="cth. (opsional)" maxlength="4">
       </div>
       <div class="fg">
         <label>URL Foto (pisahkan dengan koma)</label>
@@ -474,7 +477,7 @@
   <div class="modal-admin modal-sm">
     <div class="modal-admin-head">
       <h2 id="detailModalTitle">Detail Pesan</h2>
-      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+      <button class="modal-close" onclick="closeDetailModal()">&#10005;</button>
     </div>
     <div class="modal-admin-body" id="detailModalBody"></div>
     <div class="modal-admin-foot">
@@ -488,7 +491,7 @@
   <div class="modal-admin modal-sm">
     <div class="modal-admin-head">
       <h2>Backup Data</h2>
-      <button class="modal-close" onclick="closeBackupPanel()">✕</button>
+      <button class="modal-close" onclick="closeBackupPanel()">&#10005;</button>
     </div>
     <div class="modal-admin-body" id="backupModalBody">
       <div class="backup-info-card">
@@ -510,7 +513,7 @@
         </div>
       </div>
       <div class="backup-desc">
-        <p>Saat backup dilakukan, semua data <strong>Ulasan</strong> dan <strong>Pesan Kontak</strong> yang ada akan disimpan ke node arsip Firebase, Data Destinasi Wisata tidak dihapus.</p>
+        <p>Saat backup dilakukan, semua data <strong>Ulasan</strong> dan <strong>Pesan Kontak</strong> yang ada akan disimpan ke node arsip Firebase. Data Destinasi Wisata tidak dihapus.</p>
       </div>
       <div id="backupProgress" style="display:none" class="backup-progress">
         <div class="backup-progress-bar"><div id="backupProgressFill" class="backup-progress-fill"></div></div>
@@ -529,7 +532,7 @@
   <div class="modal-admin modal-sm">
     <div class="modal-admin-head">
       <h2>Status Database</h2>
-      <button class="modal-close" onclick="closeDbInfo()">✕</button>
+      <button class="modal-close" onclick="closeDbInfo()">&#10005;</button>
     </div>
     <div class="modal-admin-body">
       <div class="backup-info-card">
