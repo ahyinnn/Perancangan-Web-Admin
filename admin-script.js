@@ -345,8 +345,8 @@ function renderWisataTable(list) {
       <td><div class="cell-sub" style="max-width:130px">${esc(w.jam || "—")}</div></td>
       <td>
         <div class="act-btns">
-          <button class="btn-edit" onclick="openFormModal('${w.fbKey}')">✏️ Edit</button>
-          <button class="btn-del"  onclick="confirmDeleteWisata('${w.fbKey}', '${esc(w.nama)}')">🗑️ Hapus</button>
+          <button class="btn-edit" onclick="openFormModal('${w.fbKey}')">Edit</button>
+          <button class="btn-del"  onclick="confirmDeleteWisata('${w.fbKey}', '${esc(w.nama)}')">Hapus</button>
         </div>
       </td>
     </tr>`).join("");
@@ -427,7 +427,7 @@ async function saveWisata() {
     kontak: document.getElementById("fKontak").value.trim(),
     jam:    document.getElementById("fJam").value.trim(),
     harga:  document.getElementById("fHarga").value.trim(),
-    em:     document.getElementById("fEm").value.trim() || "🌴",
+    em:     document.getElementById("fEm").value.trim(),
     foto:   fotoRaw ? fotoRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
     fac:    facRaw  ? facRaw.split(",").map(s => s.trim()).filter(Boolean) : [],
     maps:   document.getElementById("fMaps").value.trim(),
@@ -440,19 +440,19 @@ async function saveWisata() {
   try {
     if (editingKey) {
       await fbUpdate("wisata/" + editingKey, data);
-      toast("✅ Destinasi berhasil diperbarui!");
+      toast("Destinasi berhasil diperbarui!");
     } else {
       // Auto-increment id berdasarkan id terbesar yang ada
       const maxId = allWisata.reduce((m, w) => Math.max(m, w.id || 0), 0);
       data.id = maxId + 1;
       data.createdAt = new Date().toISOString();
       await fbPush("wisata", data);
-      toast("✅ Destinasi baru berhasil ditambahkan!");
+      toast("Destinasi baru berhasil ditambahkan!");
     }
     closeFormModal();
   } catch (e) {
     console.error(e);
-    toast("❌ Gagal menyimpan. Periksa koneksi atau izin database.");
+    toast("Gagal menyimpan. Periksa koneksi atau izin database.");
   } finally {
     btn.disabled = false;
     btn.textContent = "Simpan Destinasi";
@@ -477,10 +477,10 @@ function confirmDeleteWisata(fbKey, nama) {
 async function deleteWisata(fbKey, nama) {
   try {
     await fbDel("wisata/" + fbKey);
-    toast(`🗑️ "${nama}" berhasil dihapus dari database`);
+    toast(`${nama}" berhasil dihapus dari database`);
   } catch (e) {
     console.error(e);
-    toast("❌ Gagal menghapus. Periksa koneksi.");
+    toast("Gagal menghapus. Periksa koneksi.");
   }
 }
 
@@ -530,7 +530,7 @@ function renderReviewTable(list) {
       <td><div class="cell-sub">${esc(r.date || "—")}</div></td>
       <td>
         <div class="act-btns">
-          <button class="btn-del" onclick="confirmDeleteReview('${r.wisataId}','${r.fbKey}','${esc(r.name)}')">🗑️ Hapus</button>
+          <button class="btn-del" onclick="confirmDeleteReview('${r.wisataId}','${r.fbKey}','${esc(r.name)}')">Hapus</button>
         </div>
       </td>
     </tr>`).join("");
@@ -555,9 +555,9 @@ function confirmDeleteReview(wisataId, fbKey, name) {
   document.getElementById("btnConfirmDel").onclick = async () => {
     try {
       await fbDel(`reviews/${wisataId}/${fbKey}`);
-      toast("🗑️ Ulasan berhasil dihapus");
+      toast("Ulasan berhasil dihapus");
     } catch (e) {
-      toast("❌ Gagal menghapus ulasan");
+      toast("Gagal menghapus ulasan");
     }
     closeConfirm();
   };
@@ -653,9 +653,9 @@ function confirmDeleteContact(fbKey, nama) {
   document.getElementById("btnConfirmDel").onclick = async () => {
     try {
       await fbDel("contacts/" + fbKey);
-      toast("🗑️ Pesan berhasil dihapus");
+      toast("Pesan berhasil dihapus");
     } catch (e) {
-      toast("❌ Gagal menghapus pesan");
+      toast("Gagal menghapus pesan");
     }
     closeConfirm();
   };
@@ -750,17 +750,14 @@ function updateCapacityBar(barId, count, max, label) {
   const sisa = max - count;
   let statusClass = "cap-status-ok";
   let statusText = "Normal";
-  let statusIcon = "✅";
   let fillClass = "";
   if (pct >= 100) {
     statusClass = "cap-status-full";
     statusText = "Penuh!";
-    statusIcon = "🔴";
     fillClass = "full";
   } else if (pct >= 80) {
     statusClass = "cap-status-warn";
     statusText = "Hampir penuh";
-    statusIcon = "⚠️";
     fillClass = "warn";
   }
   el.innerHTML = `
@@ -795,15 +792,12 @@ function pushNotif(type, data) {
   const id = Date.now() + "_" + Math.random().toString(36).slice(2);
   let icon, title, sub;
   if (type === "review") {
-    icon = "⭐";
     title = "Ulasan baru dari " + (data.name || "Pengunjung");
     sub = (data.wisataName || "Destinasi") + " · " + (data.rating || 0) + "/5 ★";
   } else if (type === "wisata") {
-    icon = "🗺️";
     title = "Destinasi baru: " + (data.nama || "Tanpa nama");
     sub = data.kat || "Destinasi Wisata";
   } else {
-    icon = "📬";
     title = "Pesan baru dari " + (data.nama || "Pengunjung");
     sub = data.topik || "Tanpa topik";
   }
@@ -905,12 +899,12 @@ async function runBackup(silent = false) {
 
     localStorage.setItem(BACKUP_KEY, Date.now().toString());
     showBackupModal("success", ts);
-    toast("✅ Backup selesai & data lama dibersihkan");
+    toast("Backup selesai & data lama dibersihkan");
     pushNotif("system", { nama: "Sistem", topik: "Backup selesai pada " + new Date().toLocaleString("id-ID") });
   } catch (e) {
     console.error(e);
     showBackupModal("error", "", e.message);
-    toast("❌ Backup gagal: " + e.message);
+    toast("Backup gagal: " + e.message);
   }
 }
 
@@ -926,7 +920,6 @@ function showBackupModal(state, ts, errMsg) {
 
   ov.classList.add("open");
   if (state === "running") {
-    icon.textContent = "💾";
     title.textContent = "Backup Sedang Berjalan";
     msg.textContent = "Menyimpan data ulasan dan kontak ke Firebase...";
     prog.style.display = "block";
@@ -946,14 +939,12 @@ function showBackupModal(state, ts, errMsg) {
     bar.style.animation = "none";
     bar.style.background = "#10b981";
     setTimeout(() => { prog.style.display = "none"; }, 600);
-    icon.textContent = "✅";
     title.textContent = "Backup Berhasil";
     msg.innerHTML = `Data ulasan & pesan kontak telah disimpan ke Firebase<br><small style="color:var(--muted)">Backup: <code>${ts}</code></small>`;
     btns.style.display = "flex";
   } else {
     if (bar._interval) clearInterval(bar._interval);
     prog.style.display = "none";
-    icon.textContent = "❌";
     title.textContent = "Backup Gagal";
     msg.textContent = errMsg || "Terjadi kesalahan saat backup.";
     btns.style.display = "flex";
@@ -1019,7 +1010,7 @@ function openDbInfo() {
   if (wEl) wEl.textContent = allWisata.length + " destinasi";
   if (rEl) rEl.textContent = allReviews.length + " ulasan";
   if (cEl) cEl.textContent = allContacts.length + " pesan";
-  if (sEl) sEl.textContent = "🟢 Terhubung (Realtime)";
+  if (sEl) sEl.textContent = "Terhubung (Realtime)";
 
   document.getElementById("dbInfoModal").classList.add("open");
 }
@@ -1034,7 +1025,7 @@ async function doManualBackup() {
   const fill = document.getElementById("backupProgressFill");
   const txt  = document.getElementById("backupProgressText");
 
-  if (btn) { btn.disabled = true; btn.textContent = "⏳ Memproses..."; }
+  if (btn) { btn.disabled = true; btn.textContent = "Memproses..."; }
   if (prog) prog.style.display = "block";
   if (fill) fill.style.width = "0%";
   if (txt)  txt.textContent = "Menyiapkan backup...";
@@ -1065,14 +1056,14 @@ async function doManualBackup() {
     localStorage.setItem(BACKUP_KEY, Date.now().toString());
     clearInterval(iv);
     if (fill) { fill.style.width = "100%"; fill.style.background = "#10b981"; }
-    if (txt)  txt.textContent = "✅ Backup berhasil!";
-    if (btn) { btn.disabled = false; btn.textContent = "✅ Selesai"; }
-    toast("✅ Backup berhasil disimpan");
+    if (txt)  txt.textContent = "Backup berhasil!";
+    if (btn) { btn.disabled = false; btn.textContent = "Selesai"; }
+    toast("Backup berhasil disimpan");
     pushNotif("system", { nama: "Sistem", topik: "Backup selesai pada " + new Date().toLocaleString("id-ID") });
     setTimeout(() => closeBackupPanel(), 1500);
   } catch (e) {
     clearInterval(iv);
-    if (txt) txt.textContent = "❌ Gagal: " + e.message;
+    if (txt) txt.textContent = "Gagal: " + e.message;
     if (btn) { btn.disabled = false; btn.textContent = "🗄️ Coba Lagi"; }
     toast("❌ Backup gagal: " + e.message);
   }
