@@ -691,9 +691,9 @@ function thumbEl(foto, em) {
     return `<img src="${f}" alt="" loading="lazy"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
       style="width:100%;height:100%;object-fit:cover;border-radius:inherit">
-      <span style="display:none;align-items:center;justify-content:center;width:100%;height:100%">${em || "🌴"}</span>`;
+      <span style="display:none;align-items:center;justify-content:center;width:100%;height:100%"></span>`;
   }
-  return `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%">${em || "🌴"}</span>`;
+  return `<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"></span>`;
 }
 
 // Tampilkan notifikasi toast sementara di pojok layar
